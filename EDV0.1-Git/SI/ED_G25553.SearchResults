@@ -1,0 +1,4 @@
+---- RxdOk Matches (3 in 3 files) ----
+Main.c (e:\wk_ancn\开发项目\wrtu-prj\wrtu-src\enddevice_2014-2\g2553-edv0.1-rc3):unsigned char RxdOk = 0;/* 接收数据OK标记 */
+System.h (e:\wk_ancn\开发项目\wrtu-prj\wrtu-src\enddevice_2014-2\g2553-edv0.1-rc3):extern unsigned char RxdOk;/* 接收数据OK标记 */
+Timer.c (e:\wk_ancn\开发项目\wrtu-prj\wrtu-src\enddevice_2014-2\g2553-edv0.1-rc3):          RxdOk = 0;
