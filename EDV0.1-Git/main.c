@@ -21,6 +21,13 @@
 //   February 2012
 //   Built with CCS Version 4.2.0 and IAR Embedded Workbench Version: 5.10
 //******************************************************************************
+/*	G2553-EDV0.1
+日期：2014-3-28  
+1: modbus相似版本已经完成调试，主动发送数据部分还没有完善。
+
+日期：2014-3-31 
+1: 休眠和LCD部分已经增加和修改完毕，主动休眠部分没有增加。
+*/
 //#include <io430.h>
 #include "msp430.h"
 #include "system.h"
@@ -28,16 +35,9 @@
 
 struct ED_Device ED;
 unsigned char HoldReg[64];
-//unsigned char ED_Reg[32];
-//unsigned char EdReg[16];
-//unsigned char PgReg[8][8];
-
 unsigned char ED_RunSta = 0;
 unsigned int WRTU_LinkCnt = 1; 
 unsigned char WRTU_LinkUP = 1;//0：成功 >1失败
-//unsigned char WRTU_BC = 1;//0：成功 >1失败
-/* unsigned char ActMsgSta = 0x00;通过定时器来发送ActMsg消息 */
-
 unsigned char ActMsgFlag = 0;
 unsigned int ActMsgCnt = 0;
 unsigned int ActMsgEn = 0;
@@ -68,6 +68,12 @@ unsigned char FlashChk = 0x00;/* 标记Flash参数是否正确 */
 
 struct Net_Farme MsgTxd;
 struct Net_Farme MsgRxd;
+
+rt_uint8_t XbeePowerStatus = 0;         //电源状态：1=Active 0=Sleep   
+rt_uint8_t SleepRunStatus = 0;          //当前状态：1=Active 0=Sleep 
+rt_uint8_t SleepReqStatus = 0;          //申请状态：1=Active 0=Sleep   
+rt_uint8_t SleepTimeSet = 0;            //休眠的时间参数
+
 
 /*********************************************************************************************************
 ** Function name:       SystemClock
@@ -108,9 +114,66 @@ void SystemPortConfig()
  P3OUT=0x00;
  P3DIR=0x00;
  P3SEL=0x00;
+ 
+  InitKey();
+  InitPowerContrl();
+  InitSleepContrl();
+}
+
+void InitKey(  )
+{//p2.1 p2.2 p3.2
+  //设置输入方式
+  P2DIR &=~0x06;
+  P3DIR &=~0x04;
+  //设定内置上拉电阻
+  P2OUT |=0x06;
+  P3OUT |=0x04;
+  //开启上拉电阻
+  P2REN |=0x06;
+  P3REN |=0x04;
+}
+
+rt_uint8_t GetKey(  )
+{
+rt_uint8_t KeyA = 0,KeyB = 0;
+//KeyA = ~(P2IN&0x06);
+//KeyB = ~(P3IN&0x04);
+KeyA = P2IN&0x06;
+KeyB = P3IN&0x04;
+return (KeyA+(KeyB<<4));
 
 }
 
+
+void ProcessKey()
+{
+ rt_uint8_t GetKeyStatus; 
+ 
+ GetKeyStatus = GetKey();
+ 
+if(GetKeyStatus!=0x46)
+{
+  switch (GetKeyStatus)
+  {
+  case 0x06:    //Set_Key
+    SleepSet(ReqInSleep);
+    break;
+  case 0x44:    //Add_Key
+    SleepSet(ReqExitSleep);
+    break;  
+  case 0x42:    //Zero_Key
+    Adc10RefSet(1,0);
+    Adc10Get(10);
+    Adc10RefSet(0,0);
+    LCD_Display_Detail(1,IntDegC,ADDR_U,12,0);
+    break; 
+  default:
+    break;
+  }
+}
+}
+//debug-key
+ rt_uint8_t Key = 0; 
 /*********************************************************************************************************
 ** Function name:       main
 ** Descriptions:   
@@ -120,19 +183,24 @@ void SystemPortConfig()
 *********************************************************************************************************/
 int main(void)
 {
+ 
+  
   WDTCTL = WDTPW + WDTHOLD;                 // Stop WDT
   _DINT(); 
   SystemClock();
   SystemPortConfig();
+  LCD_Display();
   XBEE_ON;
   TimeraInit(); 
   TimerSrvRun();
   TimerSrvBusy();//启动AT模式的计数器用于标记Xbee模块是否处于AT模式
   usart0_init();
+  InitAdc10();
+  
   _EINT();
   
-  //LongDelay(2); 
-  //Net_Init();
+  LongDelay(1); 
+  Net_Init();
   
   ED.eIP = 0x01;
   ED.rIP = 0xF0;
@@ -142,16 +210,9 @@ int main(void)
   //__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
   while(1)
   {
+    LongDelay(1);
     /*DelayTime(200);      
-    //Chk_Link();
-    //Chk_Act();
-	
-	if((ED_RunSta==2)&&(WRTU_LinkUP==0))
-       	{
-              	//At_Da_Set(ED.RT_MACH,ED.RT_MACL,0x01);
-              	ED_RunSta = 5;
-           	}
-   
+
         if((ActMsgFlag)&&(ED_RunSta == 5))
 	    {
         	DelayTime(50);

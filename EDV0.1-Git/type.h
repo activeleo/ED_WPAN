@@ -17,6 +17,9 @@ typedef	rt_int32_t		int32_t;
 typedef	rt_uint32_t		uint32_t;
 typedef long long		int64_t;
 typedef unsigned long long      uint64_t;
+
+typedef unsigned char           uchar;   
+typedef unsigned int            uint; 
 #endif /* __type_h */
 
 /* end of type.h */

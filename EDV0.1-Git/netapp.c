@@ -19,18 +19,11 @@
   */ 
 
 #include "system.h"
-
-
  
 extern unsigned char ED_Reg[32];
 extern struct ED_Device ED;
-
-//extern struct Net_Farme DevMsg;
 extern struct Net_Farme MsgTxd;
 extern struct Net_Farme MsgRxd;
-
-
-
 const unsigned char auchCRCHi[] = 
 {
 	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
@@ -178,15 +171,33 @@ unsigned char  Net_Init()
     	//At_Msg_Get("atid",100,(uint32_t *)&(ED.PAN_ID),1);       // PANID
     	At_Msg_Get("atid",100,&TEMP,1);
     	ED.xPAN = TEMP;
-  	At_Msg_Get("atce",100,&(TEMP),1);
-  	ED.xCE= TEMP;
-  	//ED_Reg[CE] = TEMP;
-  	At_Busy();
+    	At_Msg_Get("atsc",100,&TEMP,1);
+    	ED.xSC = TEMP;
+		
+	At_Busy();DelayTime(50);
   	At_Msg_Get("atsd",100,&(TEMP),1);
   	ED.xSD= TEMP;
- 	// ED_Reg[SC] = TEMP; 
- 	At_Msg_Get("atct",100,&(TEMP),1);
- 	// ED_Reg[ACT] = TEMP;  
+  	At_Msg_Get("atce",100,&(TEMP),1);
+  	ED.xCE= TEMP;
+	
+	At_Busy();DelayTime(50);
+  	At_Msg_Get("atpl",100,&(TEMP),1);
+  	ED.xPL= TEMP;
+  	At_Msg_Get("atpm",100,&(TEMP),1);
+  	ED.xPM= TEMP;
+
+	At_Busy();DelayTime(50);
+  	At_Msg_Get("atsp",100,&(TEMP),1);
+  	ED.xSP= TEMP;
+  	At_Msg_Get("atsn",100,&(TEMP),1);
+  	ED.xSN= TEMP;
+	At_Busy();DelayTime(50);
+  	At_Msg_Get("atsm",100,&(TEMP),1);
+  	ED.xSM= TEMP;
+  	At_Msg_Get("atst",100,&(TEMP),1);
+  	ED.xST= TEMP;
+  	At_Msg_Get("atsn",100,&(TEMP),1);
+  	ED.xSN= TEMP;
 
   	At_Busy();  
   	DelayTime(50);
@@ -195,10 +206,12 @@ unsigned char  Net_Init()
   	At_Msg_Get("atsl",100,&(ED.eMACL),1); 
   	DelayTime(50);
   	At_Busy();
-  	At_Msg_Get("atdh",100,&(ED.eMACH),1);       // 获取目标地址
+  	At_Msg_Get("atdh",100,&(ED.dMACH),1);       // 获取目标地址
   	DelayTime(50);
-  	At_Msg_Get("atdl",100,&(ED.eMACL),1);    
+  	At_Msg_Get("atdl",100,&(ED.dMACL),1);    
   	At_Busy();   
+
+	
     	//At_Msg_Get("atdb",100,(uint32_t *)&DB,1);       // RSSI  
     	//At_Msg_Get("atpl",100,(uint32_t *)&PL,1);       // 电源级别 
     	//ED.NST = PL;		/*网络状态*/
@@ -235,7 +248,7 @@ void MsgProcess()
 
 if(MsgRecive(RxdData[0]))//接收第一个字节为地址的数据信息
 {
-  MsgAction(MsgRxd.FC);
+  MsgAction(MsgRxd.FC);//pFC
 }
 }
 /*********************************************************************************************************
@@ -250,14 +263,17 @@ rt_uint8_t MsgRecive(rt_uint8_t ED_ID)
 
 if((ED.eIP == ED_ID)&&(CRC16(RxdData,(RxdCnt+1))==0))
 {
-	if(MsgCopyToRxd(RxdCnt))//复制接收缓冲区的数据到消息区
+	if(MsgCopyToRxd(RxdCnt+1))//复制接收缓冲区的数据到消息区
 	{
 
           UartClearRxd();//释放接收缓冲区
           return 1;
 	}
-
-	
+        else
+        {
+        UartClearRxd();
+        return 0;
+        }
 
 }
 return 0;
@@ -274,21 +290,97 @@ return 0;
 rt_uint8_t MsgCopyToRxd(rt_uint8_t pLen )
 {
 rt_uint8_t i = 0;
-//rt_uint16_t Temp = 0;
 
-if(pLen<=0x20)
-{
-	MsgRxd.DA = RxdData[0];
-	MsgRxd.FC = RxdData[1];
-	MsgRxd.SD = (RxdData[2]<<8)|RxdData[3];	
-	MsgRxd.LN = (RxdData[4]<<8)|RxdData[5];
+  switch (RxdData[1])
+  {
+  case 0x03://读取保持寄存器
+    if(pLen<=0x20)
+    {
+      MsgRxd.DA = RxdData[0];
+      MsgRxd.FC = RxdData[1];
+      MsgRxd.SD = (RxdData[2]<<8)|RxdData[3];	
+      MsgRxd.LN = (RxdData[4]<<8)|RxdData[5];
 
-for(i=0;i<(pLen - 8);i++)
+      for(i=0;i<(pLen - 8);i++)
+      {
+        MsgRxd.DATA[i] = RxdData[6+i];
+      }
+    }
+    MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+    break;
+  case 0x06://读取保持寄存器
+    if(pLen<=0x20)
+    {
+      MsgRxd.DA = RxdData[0];
+      MsgRxd.FC = RxdData[1];
+      MsgRxd.SD = (RxdData[2]<<8)|RxdData[3];	
+      //MsgRxd.LN = (RxdData[4]<<8)|RxdData[5];
+
+      for(i=0;i<(pLen - 6);i++)
+      {
+        MsgRxd.DATA[i] = RxdData[4+i];
+      }
+    }
+    MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+    break;
+   case 0x10://读取保持寄存器
+    if(pLen<=0x20)
+    {
+      MsgRxd.DA = RxdData[0];
+      MsgRxd.FC = RxdData[1];
+      MsgRxd.SD = (RxdData[2]<<8)|RxdData[3];	
+      MsgRxd.LN = (RxdData[4]<<8)|RxdData[5];
+
+      for(i=0;i<(pLen - 8);i++)
+      {
+        MsgRxd.DATA[i] = RxdData[6+i];
+      }
+    }
+    MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+    break;
+    case 0x01://设定多个保持寄存器
+   
+      MsgRxd.DA = RxdData[0];
+      MsgRxd.FC = RxdData[1];
+      MsgRxd.SD = (RxdData[2]<<8)|RxdData[3];	
+      MsgRxd.LN = (RxdData[4]<<8)|RxdData[5];
+
+      for(i=0;i<(pLen - 8);i++)
+      {
+        MsgRxd.DATA[i] = RxdData[6+i];
+      }
+    
+    MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+	if(MsgRxd.SD==0x0000)
 	{
-	MsgRxd.DATA[i] = RxdData[6+i];
+	   TestReg();
+	  }	
+        else if(MsgRxd.SD==0x0001)
+      	{
+      		UpLoadMsg(0x03,0x00,0x10);
+      	}
+	  else if(MsgRxd.SD==0x0002)
+	{
+		UpLoadMsg(0x03,0x08,0x8);
+	  }
+      return 0;
+    break;
+  default:
+    if(pLen<=0x20)
+    {
+      MsgRxd.DA = RxdData[0];
+      MsgRxd.FC = RxdData[1];
+      MsgRxd.SD = (RxdData[2]<<8)|RxdData[3];	
+      MsgRxd.LN = (RxdData[4]<<8)|RxdData[5];
+      for(i=0;i<(pLen - 8);i++)
+      {
+        MsgRxd.DATA[i] = RxdData[6+i];
+      }
+    }
+    MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+    break;
 }
-}
-MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+
 return 1;
 
 }
@@ -316,9 +408,9 @@ rt_uint8_t MsgAction(rt_uint8_t pFC)
     }
     break;
   case 0x06://设定单个保持寄存器
-    if(WriteReg(MsgRxd.SD,MsgRxd.LN,MsgRxd.DATA))
+    if(WriteReg(MsgRxd.SD,0x01,MsgRxd.DATA))
     {
-    
+      MsgResponse(0x06,0x01);// Get:LN=Num
     }
     else
     {
@@ -326,21 +418,21 @@ rt_uint8_t MsgAction(rt_uint8_t pFC)
     }
     break;
   case 0x10://设定多个保持寄存器
-    if(WriteReg(MsgRxd.SD,MsgRxd.LN,MsgRxd.DATA))
+    if(WriteReg(MsgRxd.SD,MsgRxd.LN,&(MsgRxd.DATA[1])))
     {
-    
+      MsgResponse(0x10,MsgRxd.LN);// Get:LN=Num
     }
     else
     {
      return 0;
     }
     break;
-   case 0x01://设定多个保持寄存器
-      TestReg();
-    break;
+
   default:
+    MsgResponse(pFC,8);
     break;
 }
+
   return 0;
 }
 /*********************************************************************************************************
@@ -403,19 +495,30 @@ rt_uint8_t i = 0;
 *********************************************************************************************************/
 rt_uint8_t WriteReg(rt_uint8_t pSD,rt_uint8_t pLN,rt_uint8_t *pBuf)
 {
-
+  rt_uint8_t i = 0;
+  if(CheckReg(pSD,pLN))//地址和范围合法
+  {
+    for(i=0;i<pLN;i++)
+    {
+      //*pBuf = HoldReg[pSD+i];
+      //*pBuf++;
+      HoldReg[pSD+i]=*pBuf;
+      *pBuf++;
+    }
+    return 1;
+  }
   return 0;
 }
 /*********************************************************************************************************
-** Function name:       	MsgSendReg
-** Descriptions:		主动上传寄存的信息   
+** Function name:       	MsgSend
+** Descriptions:		发送信息
 ** input parameters:	None    
 ** output parameters:	None  
 ** Returned value:  	None    
 *********************************************************************************************************/
 rt_uint8_t MsgSend(rt_uint8_t pFC,rt_uint8_t pLN,rt_uint8_t *pBuf)
 {
- rt_uint8_t TxdBuf[24];
+ unsigned char TxdBuf[24];
  rt_uint8_t i = 0;
    switch (pFC)
   {
@@ -430,33 +533,39 @@ rt_uint8_t MsgSend(rt_uint8_t pFC,rt_uint8_t pLN,rt_uint8_t *pBuf)
     MsgTxd.CRC = CRC16(TxdBuf,pLN+2);//8+1+pLN
     TxdBuf[2+pLN+0] = MsgTxd.CRC>>8;
     TxdBuf[2+pLN+1] = MsgTxd.CRC;
-    UartWriteStrNum(TxdBuf,pLN+4);//强制类型转换
+    MsgClear(Txd);
+    UartWriteStrNum((char *)TxdBuf,pLN+4);//强制类型转换
     break;
   case 0x06://设定单个保持寄存器
     TxdBuf[0] = MsgTxd.DA;
     TxdBuf[1] = MsgTxd.FC;
+    TxdBuf[2] = MsgTxd.SD>>8;
+    TxdBuf[3] = MsgTxd.SD;
     for(i=0;i<pLN;i++)
       {
-      TxdBuf[2+i] = *pBuf;//TxdBuf[6+i] = *pBuf;
+      TxdBuf[4+i] = *pBuf;//TxdBuf[6+i] = *pBuf;
       *pBuf++;
       }
-    MsgTxd.CRC = CRC16(TxdBuf,pLN+2);//8+1+pLN
-    TxdBuf[2+pLN+0] = MsgTxd.CRC>>8;
-    TxdBuf[2+pLN+1] = MsgTxd.CRC;
-    UartWriteStrNum(TxdBuf,pLN+4);//强制类型转换
+    MsgTxd.CRC = CRC16(TxdBuf,pLN+4);//8+1+pLN
+    TxdBuf[4+pLN+0] = MsgTxd.CRC>>8;
+    TxdBuf[4+pLN+1] = MsgTxd.CRC;
+    MsgClear(Txd);
+    UartWriteStrNum((char *)TxdBuf,pLN+4+2);//强制类型转换
     break;
-  case 0x10://设定多个个保持寄存器
+  case 0x10://设定多个保持寄存器
     TxdBuf[0] = MsgTxd.DA;
     TxdBuf[1] = MsgTxd.FC;
-    for(i=0;i<pLN;i++)
-      {
-      TxdBuf[2+i] = *pBuf;//TxdBuf[6+i] = *pBuf;
-      *pBuf++;
-      }
-    MsgTxd.CRC = CRC16(TxdBuf,pLN+2);//8+1+pLN
-    TxdBuf[2+pLN+0] = MsgTxd.CRC>>8;
-    TxdBuf[2+pLN+1] = MsgTxd.CRC;
-    UartWriteStrNum(TxdBuf,pLN+4);//强制类型转换
+    TxdBuf[2] = MsgTxd.SD>>8;
+    TxdBuf[3] = MsgTxd.SD;
+    TxdBuf[4] = MsgTxd.LN>>8;
+    TxdBuf[5] = MsgTxd.LN;
+   
+    MsgTxd.CRC = CRC16(TxdBuf,pLN+4);//8+1+pLN
+    TxdBuf[4+pLN+0] = MsgTxd.CRC>>8;
+    TxdBuf[4+pLN+1] = MsgTxd.CRC;
+
+    MsgClear(Txd);
+    UartWriteStrNum((char *)TxdBuf,pLN+4+2);//强制类型转换  
     break;    
    default:
     TxdBuf[0] = MsgTxd.DA;
@@ -465,29 +574,20 @@ rt_uint8_t MsgSend(rt_uint8_t pFC,rt_uint8_t pLN,rt_uint8_t *pBuf)
     TxdBuf[3] = MsgTxd.SD;
     TxdBuf[4] = MsgTxd.LN>>8;
     TxdBuf[5] = MsgTxd.LN;
-    for(i=0;i<pLN;i++)
-      {
-      TxdBuf[2+i] = *pBuf;//TxdBuf[6+i] = *pBuf;
-      *pBuf++;
-      }
-    MsgTxd.CRC = CRC16(TxdBuf,pLN+2);//8+1+pLN
-    TxdBuf[2+pLN+0] = MsgTxd.CRC>>8;
-    TxdBuf[2+pLN+1] = MsgTxd.CRC;
-    UartWriteChar(MsgTxd.DA);
-    UartWriteChar(MsgTxd.FC);
-    UartWriteChar(MsgTxd.SD);
-    UartWriteChar(MsgTxd.LN);
-    UartWriteStrNum(MsgTxd.DATA,LEN);
-    UartWriteStrNum(TxdBuf,pLN+4);//强制类型转换    
+    MsgTxd.CRC = CRC16(TxdBuf,pLN-2);//8+1+pLN
+    TxdBuf[pLN-2+0] = MsgTxd.CRC>>8;
+    TxdBuf[pLN-2+1] = MsgTxd.CRC;
+    MsgClear(Txd);
+    UartWriteStrNum((char *)TxdBuf,pLN);//强制类型转换    
     break;
- 
+  } 
   return 0;
 }
 
 /*********************************************************************************************************
-** Function name:       	MsgSendReg
-** Descriptions:		主动上传寄存的信息   
-** input parameters:	None    
+** Function name:       	MsgResponse
+** Descriptions:		响应函数  
+** input parameters:	pLN:数据区域的长度    
 ** output parameters:	None  
 ** Returned value:  	None    
 *********************************************************************************************************/
@@ -501,19 +601,58 @@ rt_uint8_t MsgResponse(rt_uint8_t pFC,rt_uint8_t pLN)
       MsgTxd.SD = MsgRxd.SD;
       MsgTxd.LN = MsgRxd.LN;
       MsgTxd.DATA[0] = pLN;
-      MsgSend(pLN+1,&(MsgTxd.DATA[0]));//PLN=RXD.LN+1
+      MsgSend(pFC,pLN+1,&(MsgTxd.DATA[0]));//PLN=RXD.LN+1
     break;
   case 0x06://设定单个保持寄存器
-
+      MsgTxd.DA = MsgRxd.DA;
+      MsgTxd.FC = MsgRxd.FC;
+      MsgTxd.SD = MsgRxd.SD;
+      MsgTxd.LN = 0x01;//固定为单个的保持寄存器
+       
+      ReadReg((MsgTxd.SD),(MsgTxd.LN),&(MsgTxd.DATA[0]));
+      MsgSend(pFC,pLN,&(MsgTxd.DATA[0]));//PLN=RXD.LN+0
     break;
   case 0x10://设定多个保持寄存器
-
+      MsgTxd.DA = MsgRxd.DA;
+      MsgTxd.FC = MsgRxd.FC;
+      MsgTxd.SD = MsgRxd.SD;
+      MsgTxd.LN = MsgRxd.LN;//固定为单个的保持寄存器
+      pLN = 2;
+      //ReadReg((MsgTxd.SD),(MsgTxd.LN),&(MsgTxd.DATA[0]));
+      MsgSend(pFC,pLN,&(MsgTxd.DATA[0]));//PLN=RXD.LN+0
     break;
   default:
+      MsgTxd.DA = MsgRxd.DA;
+      MsgTxd.FC = MsgRxd.FC;
+      MsgTxd.SD = MsgRxd.SD;
+      MsgTxd.LN = MsgRxd.LN;
+      MsgSend(pFC,pLN,&(MsgTxd.DATA[0]));//PLN=RXD.LN+1
     break;
 }
+MsgClear(Rxd);
   return 0;
 }
 
-
+/*********************************************************************************************************
+** Function name:       	UpLoadMsg
+** Descriptions:		主动上传寄存的信息   
+** input parameters:	pLN:数据区域的长度    
+** output parameters:	None  
+** Returned value:  	None    
+*********************************************************************************************************/
+rt_uint8_t UpLoadMsg(rt_uint8_t pFC,rt_uint8_t pSD,rt_uint8_t pLN)
+{
+MsgClear(Rxd);
+if((pFC==0x03)&&((pSD+pLN)<=64)&&(pLN<=16))
+{
+      	MsgRxd.DA = ED.cIP;
+      	MsgRxd.FC = pFC;
+      	MsgRxd.SD = pSD;
+	MsgRxd.LN = pLN;
+	MsgAction(pFC);
+	MsgClear(Rxd);
+	return 1;
+}
+return 0;
+}
 

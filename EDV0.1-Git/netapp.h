@@ -52,7 +52,7 @@ rt_uint8_t WriteReg(rt_uint8_t pSD,rt_uint8_t pLN,rt_uint8_t *pBuf);
 rt_uint8_t MsgSendReg(rt_uint8_t pTY,rt_uint8_t pSD,rt_uint8_t pSL);
 void TestReg(void);
 rt_uint8_t MsgResponse(rt_uint8_t pFC,rt_uint8_t pLN);
-
+rt_uint8_t UpLoadMsg(rt_uint8_t pFC,rt_uint8_t pSD,rt_uint8_t pLN);
 
 
 

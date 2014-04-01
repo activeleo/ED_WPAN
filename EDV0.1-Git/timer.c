@@ -147,7 +147,7 @@ __interrupt void Timer_A0 (void)//100ms
 //P2OUT ^= 0x08;                            // Toggle P2.3 
 //UartWriteStr("1234567890");// 
  //TACCR0 = 0;
-
+    ProcessKey();
     if((TimerCtrl&0x01)&&(TimerCnt0!=0))//CH0
     {
         TimerCnt0--;
@@ -207,14 +207,15 @@ __interrupt void Timer_A0 (void)//100ms
         //   P2OUT ^= 0x08;                            // Toggle P2.3 
     } */ 
 /*-------------------------------------------*/ 
-if(InitCnt<10)//10Second
+if(InitCnt<100)//10Second
 {
-	InitCnt++;
+InitCnt++;
 }
 else
 {
-	InitCnt = 0;
-	InitFlag = 1;
+  
+InitCnt = 0;
+InitFlag = 1;
 } 
 /*-------------------------------------------*/ 
 }

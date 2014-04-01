@@ -1951,13 +1951,22 @@
     </settings>
   </configuration>
   <file>
+    <name>$PROJ_DIR$\adc10.c</name>
+  </file>
+  <file>
     <name>$PROJ_DIR$\flash.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\lcd.c</name>
   </file>
   <file>
     <name>$PROJ_DIR$\main.c</name>
   </file>
   <file>
     <name>$PROJ_DIR$\netapp.c</name>
+  </file>
+  <file>
+    <name>$PROJ_DIR$\power.c</name>
   </file>
   <file>
     <name>$PROJ_DIR$\timer.c</name>

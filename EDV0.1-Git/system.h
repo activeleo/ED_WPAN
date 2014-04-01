@@ -11,6 +11,9 @@
 #include "netapp.h"
 #include "xbeeapp.h"
 #include "timer.h"
+#include "power.h"
+#include "lcd.h"
+#include "adc10.h"
 
 #define rTY		0	//设备类型
 #define rNS		0	//信号质量
@@ -44,6 +47,7 @@
 #define LED1_OFF         P2OUT &= ~0x08
 #define LED2_ON         P2OUT |= 0x10
 #define LED2_OFF         P2OUT &= ~0x10
+
 #define XBEE_ON         P2OUT |= 0x20
 #define XBEE_OFF         P2OUT &= ~0x20
 
@@ -51,9 +55,15 @@
 #define TimCH1  0x01
 #define TimCH2  0x02
 #define TimCH3  0x03
+
+
 #define RxdSize 32
+
+
 #define ED_UC At_Da_Set(ED.RT_MACH,ED.RT_MACL,1)
 #define ED_BC At_Da_Set(0x00000000,0x0000FFFF,1)
+
+
 #define Data_Length 		16
 #define Txd 			1
 #define Rxd 			2
@@ -61,15 +71,31 @@
 
 #define EDRegSize 	        64
 
+#define  PowerOn                1
+#define  PowerOff               0
+#define  ReqInSleep             1
+#define  ReqExitSleep           0
+#define  Active                 1
+#define  Sleep                  0
+
  struct ED_Device
 {
-	rt_uint8_t     	eIP;        // 设备IP地址
-  	rt_uint8_t    	cIP;        // WRTU-IP地址 
-   	rt_uint8_t    	rIP;        // WRTU-IP地址 
-  	rt_uint8_t      	xCE;        // XBEE-模式
-  	rt_uint8_t      	xSD;        // XBEE-模式
-   	rt_uint8_t      	xTY;        // XBEE-模式
-  	rt_uint8_t     	xPAN;       // PANID-网络ID
+	rt_uint8_t     	eIP;        	// 设备IP地址
+  	rt_uint8_t    	cIP;        	// WRTU-IP地址 
+   	rt_uint8_t    	rIP;        	// WRTU-IP地址 
+   	rt_uint8_t     	xPAN;      	// PANID-网络ID
+  	rt_uint8_t      	xSC;        	//
+  	rt_uint8_t      	xSD;        	// 
+   	rt_uint8_t      	xCE;        	// 
+   	rt_uint8_t      	xPL;        	// 
+
+   	rt_uint8_t      	xPM;        	// 
+   	
+   	rt_uint8_t      	xSP;        	//
+   	rt_uint8_t      	xSN;        	//
+   	rt_uint8_t      	xSM;        	//
+   	rt_uint16_t      xST;        	//
+    	rt_uint8_t      	xSO;        	//  	   	   	   	
  
   	rt_uint32_t     	eMACH;      // 设备MAC地址
   	rt_uint32_t     	eMACL;      // 设备MAC地址
@@ -137,6 +163,16 @@ extern struct ED_Device ED;
 extern unsigned char HoldReg[64];
 //extern unsigned char EdReg[16];
 //extern unsigned char PgReg[8][8];
+
+extern rt_uint8_t XbeePowerStatus;         //电源状态：1=Active 0=Sleep   
+extern rt_uint8_t SleepRunStatus;          //当前状态：1=Active 0=Sleep 
+extern rt_uint8_t SleepReqStatus;          //申请状态：1=Active 0=Sleep   
+extern rt_uint8_t SleepTimeSet;            //休眠的时间参数
+
+
+void InitKey(void);
+rt_uint8_t GetKey(void);
+void ProcessKey(void);
 
 extern unsigned char  Net_Process();
 extern void erase_flash(unsigned int Addr);
