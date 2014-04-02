@@ -14,42 +14,43 @@
 #include "power.h"
 #include "lcd.h"
 #include "adc10.h"
+#include "flash.h"
 
 #define rTY		0	//设备类型
-#define rNS		0	//信号质量
-#define rPW		0	//电源电压
-#define rSN		0	//脱网时间
-#define rST		0	//唤醒时间
-#define rPs		0	//起始地址
-#define rPL		0	//访问长度
-#define rPG		0	//系统页
-#define rDB0		0	//数据0
-#define rDB1		0	//数据1
-#define rDB2		0	//数据2
-#define rDB3		0	//数据3
-#define rDB4		0	//数据4
-#define rDB5		0	//数据5
-#define rDB6		0	//数据6
-#define rDB7		0	//数据7
+#define rNS		1	//信号质量
+#define rPW		2	//电源电压
+#define rSN		3	//脱网时间
+#define rST		4	//唤醒时间
+#define rPs		5	//起始地址
+#define rPL		6	//访问长度
+#define rPG		7	//系统页
+#define rDB0		8	//数据0
+#define rDB1		9	//数据1
+#define rDB2		10	//数据2
+#define rDB3		11	//数据3
+#define rDB4		12	//数据4
+#define rDB5		13	//数据5
+#define rDB6		14	//数据6
+#define rDB7		15	//数据7
 
-#define PG0		0	//系统页
-#define PG1		0	//系统页
-#define PG2		0	//系统页
-#define PG3		0	//系统页
-#define PG4		0	//系统页
-#define PG5		0	//系统页
-#define PG6		0	//系统页
-#define PG7		0	//系统页
+#define PG0		1	//系统页
+#define PG1		2	//系统页
+#define PG2		3	//系统页
+#define PG3		4	//系统页
+#define PG4		5	//系统页
+#define PG5		6	//系统页
+#define PG6		7	//系统页
+#define PG7		8	//系统页
 
 
 //P2OUT ^= 0x08;
-#define LED1_ON         P2OUT |= 0x08
-#define LED1_OFF         P2OUT &= ~0x08
-#define LED2_ON         P2OUT |= 0x10
-#define LED2_OFF         P2OUT &= ~0x10
+#define LED1_ON        P2OUT |= 0x08
+#define LED1_OFF       P2OUT &= ~0x08
+#define LED2_ON        P2OUT |= 0x10
+#define LED2_OFF       P2OUT &= ~0x10
 
-#define XBEE_ON         P2OUT |= 0x20
-#define XBEE_OFF         P2OUT &= ~0x20
+#define XBEE_ON        P2OUT |= 0x20
+#define XBEE_OFF       P2OUT &= ~0x20
 
 #define TimCH0  0x00
 #define TimCH1  0x01
@@ -82,21 +83,22 @@
 {
 	rt_uint8_t     	eIP;        	// 设备IP地址
   	rt_uint8_t    	cIP;        	// WRTU-IP地址 
-   	rt_uint8_t    	rIP;        	// WRTU-IP地址 
-   	rt_uint8_t     	xPAN;      	// PANID-网络ID
+    	rt_uint16_t     	xPAN;      	// PANID-网络ID
   	rt_uint8_t      	xSC;        	//
   	rt_uint8_t      	xSD;        	// 
    	rt_uint8_t      	xCE;        	// 
-   	rt_uint8_t      	xPL;        	// 
-
-   	rt_uint8_t      	xPM;        	// 
+   	rt_uint8_t      	xFlag;        	// 
    	
    	rt_uint8_t      	xSP;        	//
    	rt_uint8_t      	xSN;        	//
    	rt_uint8_t      	xSM;        	//
    	rt_uint16_t      xST;        	//
     	rt_uint8_t      	xSO;        	//  	   	   	   	
- 
+   	rt_uint8_t      	xPL;        	// 
+   	rt_uint8_t      	xPM;        	//   
+   	rt_uint8_t      	xRSSI;        	//
+
+	
   	rt_uint32_t     	eMACH;      // 设备MAC地址
   	rt_uint32_t     	eMACL;      // 设备MAC地址
   	rt_uint32_t     	cMACH;      // WRTU-MAC地址
@@ -186,3 +188,5 @@ extern void init_xbee_reg(void);
 extern unsigned char  Net_Init(void);
 extern unsigned char Net_Transmission(unsigned char MsgType,unsigned int DestAdd, unsigned int MsgCode);
 extern void erase_flash(unsigned int Addr);
+
+void AppProcess(void);

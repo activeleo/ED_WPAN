@@ -20,6 +20,25 @@ typedef unsigned long long      uint64_t;
 
 typedef unsigned char           uchar;   
 typedef unsigned int            uint; 
+
+union pHex2
+{
+	unsigned int	hex2;
+	unsigned char	byte[2];
+};
+
+union pHex4
+{
+	unsigned long	hex4;
+	unsigned char	byte[4];
+};
+
+union pFloat4 
+{
+	float	float4;
+	unsigned char	byte[4];
+};
+
 #endif /* __type_h */
 
 /* end of type.h */

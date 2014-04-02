@@ -9,7 +9,7 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=-1179389697
+Checksum=621048442
 [CallStack]
 ShowArgs=0
 [Disassembly]
@@ -59,13 +59,14 @@ Fmt3=struct ED_Device-eMACH	4	0
 Fmt4=struct ED_Device-eMACL	4	0
 Fmt5=struct ED_Device-xPAN	4	0
 Fmt6=struct ED_Device-xSD	4	0
-Fmt7=struct Net_Farme-CRC	4	0
-Fmt8=struct Net_Farme-DA	4	0
-Fmt9=struct Net_Farme-FC	4	0
-Fmt10=struct Net_Farme-LN	4	0
-Fmt11=struct Net_Farme-SD	4	0
+Fmt7=struct ED_Device-xST	4	0
+Fmt8=struct Net_Farme-CRC	4	0
+Fmt9=struct Net_Farme-DA	4	0
+Fmt10=struct Net_Farme-FC	4	0
+Fmt11=struct Net_Farme-LN	4	0
+Fmt12=struct Net_Farme-SD	4	0
 [Breakpoints]
-Bp0=_ "STD_CODE" "{$PROJ_DIR$\adc10.c}.99.1" 1 0 0 0 "" 0 ""
+Bp0=_ "STD_CODE" "{$PROJ_DIR$\netapp.c}.527.3" 0 0 0 0 "" 0 ""
 Count=1
 [FET]
 Clock mode=38

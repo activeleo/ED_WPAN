@@ -49,13 +49,11 @@ long temp;
 extern int long IntDegF;
 extern int long IntDegC; 
 
+  union pFloat4 AdcTemp;
+   union pFloat4 XXTemp;
+
 void InitAdc10()
-{
- // ADC10CTL1 = INCH_3 + CONSEQ_1;            // A3/A2/A1, single sequence
- // ADC10CTL0 = ADC10SHT_2 + MSC + ADC10ON + ADC10IE;
- // ADC10DTC1 = 0x03;                         // 3 conversions
- // ADC10AE0 |= 0x0E;                         // P1.3,2,1 ADC10 option select
- 
+{ 
   ADC10CTL0  = SREF_1 + ADC10SHT_1 + ADC10SR + REF2_5V  ;//Vref-Vss+8Clk+50k+Ref2.5V  
   //ADC10CTL1 = INCH_0 + INCH_3 + INCH_10 + ADC10SSEL_1 + CONSEQ_0;//Ch0/3/temp+Aclk+Singel 
   ADC10CTL1 = ADC10SSEL_2 + CONSEQ_0;
@@ -64,30 +62,53 @@ void InitAdc10()
 
 void Adc10RefSet( rt_int8_t pSet,rt_int8_t pRef)
 {
-  if(pSet)
+  if(pSet == 1)
   {
-  ADC10CTL0 |= REFON;
+    ADC10CTL0 |= REFON;
   }
   else
   {
-  ADC10CTL0 &= ~REFON;
+    ADC10CTL0 &= ~REFON;
+  }
+  if(pRef == 1)
+  {
+    ADC10CTL0 |= REF2_5V;
+  }
+  else
+  {
+    ADC10CTL0 &= ~REF2_5V;
   }
 }
 
 void Adc10Get(rt_int8_t  pCH )
 {
+
+  
     ADC10CTL0 &=~ENC;
     ADC10CTL1 |= pCH<<12;
     ADC10CTL0 |= ENC + ADC10SC;             // Sampling and conversion start
-   // DelayTime(5000);      
+     
     while (ADC10CTL1 & BUSY);               // Wait if ADC10 core is active
-   // ADC10SA = 0x200;                        // Data buffer start
-  temp = ADC10MEM;
-  Adc10Temo();
+ 
+    temp = ADC10MEM;
+    Adc10Temo();
 }
-
+/*
+unsigned int Adc10GetSingleChannel(rt_int8_t  pCH ,rt_int8_t pNum)//单通道单次或多次转换
+{
+ unsigned int AdcTemp = 0; 
+    ADC10CTL0 &=~ENC;
+    ADC10CTL1 |= pCH<<12;
+    ADC10CTL0 |= ENC + ADC10SC;                 // Sampling and conversion start     
+    while (ADC10CTL1 & BUSY);                   // Wait if ADC10 core is active 
+    AdcTemp = ADC10MEM;
+    ADC10CTL0 &= ~REFON;                        //ADC10 Reference Stop
+    ADC10CTL0 &= ~(ENC + ADC10SC);             // Sampling and Conversion Stop  
+}
+*/
 void Adc10Temo()
 {
+  float XXXX = 123.456;
     // oF = ((A10/1024)*1500mV)-923mV)*1/1.97mV = A10*761/1024 - 468
     //temp = ADC10MEM;
     //IntDegF = ((temp - 630) * 761) / 1024;
@@ -95,14 +116,25 @@ void Adc10Temo()
     // oC = ((A10/1024)*1500mV)-986mV)*1/3.55mV = A10*423/1024 - 278
      
     //IntDegC =temp*423/1024 - 278;// ((temp - 673) * 423) / 1024;
-//IntDegC = (temp-746)/(0.000335*678)+286;
-IntDegC = ((temp*2.5)/1023-0.986)/0.00355;
+    //IntDegC = (temp-746)/(0.000335*678)+286;
+    IntDegC = ((temp*2.5)/1023-0.986)/0.00355;
+    
+    AdcTemp.float4 = IntDegC;
+     XXTemp.float4 = XXXX;
+    HoldReg[rDB0] = AdcTemp.byte[0];
+    HoldReg[rDB1] = AdcTemp.byte[1];
+    HoldReg[rDB2] = AdcTemp.byte[2];
+    HoldReg[rDB3] = AdcTemp.byte[3];
+    HoldReg[rDB4] = XXTemp.byte[0];
+    HoldReg[rDB5] = XXTemp.byte[1];
+    HoldReg[rDB6] = XXTemp.byte[2];
+    HoldReg[rDB7] = XXTemp.byte[3];
 }
 
 // ADC10 interrupt service routine
 #pragma vector=ADC10_VECTOR
 __interrupt void ADC10_ISR(void)
 {
-  //__bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
-   temp = ADC10MEM;
+    //__bic_SR_register_on_exit(CPUOFF);        // Clear CPUOFF bit from 0(SR)
+    temp = ADC10MEM;
 }

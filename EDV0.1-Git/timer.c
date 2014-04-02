@@ -133,11 +133,7 @@ void DelayTime(unsigned int delay)
 
     do delay--;
     while (delay != 0);// SW Delay    
-
 }
-
-
-
 //interrupt handlers 
 // Timer A0 interrupt service routine
 //#pragma vector=TIMERA0_VECTOR
@@ -184,9 +180,7 @@ __interrupt void Timer_A0 (void)//100ms
           RxdCntOld = RxdCnt;
         }
       else
-        {//接收数据完成
-          //Net_Process();          
-          //ClearRxd();     
+        {
           MsgProcess();
           RxdCntOld = 0;
           RxdCnt = 0;
@@ -207,15 +201,15 @@ __interrupt void Timer_A0 (void)//100ms
         //   P2OUT ^= 0x08;                            // Toggle P2.3 
     } */ 
 /*-------------------------------------------*/ 
-if(InitCnt<100)//10Second
+if(InitCnt<HoldReg[rST])//10Second
 {
-InitCnt++;
+  InitCnt++;
 }
 else
 {
-  
-InitCnt = 0;
-InitFlag = 1;
+  AppProcess();
+  InitCnt = 0;
+  InitFlag = 1;
 } 
 /*-------------------------------------------*/ 
 }

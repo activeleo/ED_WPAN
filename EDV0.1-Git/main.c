@@ -27,6 +27,10 @@
 
 日期：2014-3-31 
 1: 休眠和LCD部分已经增加和修改完毕，主动休眠部分没有增加。
+日期：2014-4-1 
+1: 所有基本功能已经完成，休眠部分已经完成。没有启用休眠，调试状态 ！
+日期：2014-4-2 
+1: Flash操作部分已经完成，可以进行数据采集操作！
 */
 //#include <io430.h>
 #include "msp430.h"
@@ -74,7 +78,7 @@ rt_uint8_t SleepRunStatus = 0;          //当前状态：1=Active 0=Sleep
 rt_uint8_t SleepReqStatus = 0;          //申请状态：1=Active 0=Sleep   
 rt_uint8_t SleepTimeSet = 0;            //休眠的时间参数
 
-
+extern char ReadFlash[8];
 /*********************************************************************************************************
 ** Function name:       SystemClock
 ** Descriptions:   
@@ -172,6 +176,59 @@ if(GetKeyStatus!=0x46)
   }
 }
 }
+
+void InitHoldReg()
+{
+rt_uint8_t i = 0;
+for(i=0;i<64;i++)
+{
+HoldReg[i] = 0xFF;
+}
+HoldReg[rTY] = 0x01;//0x01 压力传感器
+HoldReg[rNS] = 0x3F;// 
+HoldReg[rPW] = 0x20;// 
+HoldReg[rSN] = 0x31;// 
+HoldReg[rST] = 0x64;// 
+
+
+}
+void InitEdReg()
+{
+ ED.eIP = 0xFF;
+ED.cIP =  0xFF;
+ED.xPAN = 0xFF;
+ED.xSC =  0xFF;
+ED.xSD =  0xFF;
+ED.xCE =  0xFF;
+ED.xFlag =  0xFF;
+ED.xSP =  0xFF;
+ED.xSN =  0xFF;
+ED.xSM = 0xFF;
+ED.xST =  0xFF;
+ED.xSO =  0xFF;
+ED.xPL =  0xFF;
+ED.xPM =  0xFF;
+ED.xRSSI =  0xFF;
+
+ED.eMACH =  0xFFFFFFFF;
+ED.eMACL =  0xFFFFFFFF;
+ED.cMACH =  0xFFFFFFFF;
+ED.cMACL =  0xFFFFFFFF;
+ED.dMACH =  0xFFFFFFFF;
+ED.dMACL =  0xFFFFFFFF;
+
+
+}
+
+void AppProcess()
+{
+    Adc10RefSet(1,0);
+    Adc10Get(10);
+    Adc10RefSet(0,0);
+    LCD_Display_Detail(1,IntDegC,ADDR_U,12,0);
+    UpLoadMsg(0x03,0x00,0x10);
+}
+
 //debug-key
  rt_uint8_t Key = 0; 
 /*********************************************************************************************************
@@ -189,6 +246,8 @@ int main(void)
   _DINT(); 
   SystemClock();
   SystemPortConfig();
+  InitHoldReg();
+  InitEdReg();
   LCD_Display();
   XBEE_ON;
   TimeraInit(); 
@@ -199,18 +258,29 @@ int main(void)
   
   _EINT();
   
+
+  
+  /*ED.eIP = 0x01;
+  ED.cIP = 0xF0;*/
+  
+  read_flash(ReadFlash,0x1000,8);
+ if((ReadFlash[0]!=0xFF)&&(ReadFlash[0]<=0xF0))
+ {
+  InitFlash(0x00);
+ }
+ else
+ {
   LongDelay(1); 
   Net_Init();
-  
-  ED.eIP = 0x01;
-  ED.rIP = 0xF0;
-  
-  
+  ResetFlash(0xFF);
+ }
+ 
  // UartWriteStr("1234567890");
   //__bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
   while(1)
   {
-    LongDelay(1);
+  __bis_SR_register(LPM0_bits + GIE);       // Enter LPM0, interrupts enabled
+   // LongDelay(1);
     /*DelayTime(200);      
 
         if((ActMsgFlag)&&(ED_RunSta == 5))

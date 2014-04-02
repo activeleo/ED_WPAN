@@ -220,6 +220,9 @@ unsigned char  Net_Init()
     	At_Busy();//debug--->CE=0x13A200,0x04076E9DF   
     	DelayTime(5000);
     	At_Exit();
+		
+	
+	 	
 	return 0;
   }
  else
@@ -350,19 +353,21 @@ rt_uint8_t i = 0;
         MsgRxd.DATA[i] = RxdData[6+i];
       }
     
-    MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+    	MsgRxd.CRC = (RxdData[pLen-1]<<8)|RxdData[pLen];
+		
 	if(MsgRxd.SD==0x0000)
-	{
+	  {
 	   TestReg();
 	  }	
-        else if(MsgRxd.SD==0x0001)
-      	{
+       else if(MsgRxd.SD==0x0001)
+      	  {
       		UpLoadMsg(0x03,0x00,0x10);
-      	}
-	  else if(MsgRxd.SD==0x0002)
-	{
+         }
+	 else if(MsgRxd.SD==0x0002)
+	  {
 		UpLoadMsg(0x03,0x08,0x8);
 	  }
+
       return 0;
     break;
   default:
@@ -496,19 +501,47 @@ rt_uint8_t i = 0;
 rt_uint8_t WriteReg(rt_uint8_t pSD,rt_uint8_t pLN,rt_uint8_t *pBuf)
 {
   rt_uint8_t i = 0;
+  rt_uint8_t pPage_H = 0,pPage_L = 0;
   if(CheckReg(pSD,pLN))//地址和范围合法
   {
-    for(i=0;i<pLN;i++)
-    {
-      //*pBuf = HoldReg[pSD+i];
-      //*pBuf++;
-      HoldReg[pSD+i]=*pBuf;
-      *pBuf++;
-    }
-    return 1;
+  	if((pSD!=0x07) )
+		{
+    		for(i=0;i<pLN;i++)
+    			{
+     			 	//*pBuf = HoldReg[pSD+i];
+     			 	//*pBuf++;
+      				HoldReg[pSD+i]=*pBuf;
+      				*pBuf++;
+    			}
+    		return 1;
+  		}//不设定页寄存器
+  		else if((pSD==0x07)&&(MsgRxd.DATA[0]!=0x00))//页寄存器的写入操作
+  		{
+  		pPage_L = (MsgRxd.DATA[0])&0x0F;
+                pPage_H = (MsgRxd.DATA[0])&0xF0;
+    		for(i=0;i<pLN;i++)
+    			{
+      				HoldReg[i+16+((pPage_L-1)*8)]=*pBuf;
+      				*pBuf++;
+    			}
+		SyncToFlash(pPage_H,pPage_L);
+    		return 1;		
+		}
   }
   return 0;
 }
+
+void SyncToFlash(rt_uint8_t pOptr, rt_uint8_t pPAGE )
+{
+rt_uint8_t PAGE = 0,ADD = 0,LEN = 0;
+
+PAGE = (pPAGE-1);//pPAGE = 1.2.....
+ADD = 16+((pPAGE-1)*8);
+LEN = 8;
+WriteConfigToFlash(pOptr,PAGE,LEN,&HoldReg[ADD]);
+
+}
+
 /*********************************************************************************************************
 ** Function name:       	MsgSend
 ** Descriptions:		发送信息
@@ -645,7 +678,7 @@ rt_uint8_t UpLoadMsg(rt_uint8_t pFC,rt_uint8_t pSD,rt_uint8_t pLN)
 MsgClear(Rxd);
 if((pFC==0x03)&&((pSD+pLN)<=64)&&(pLN<=16))
 {
-      	MsgRxd.DA = ED.cIP;
+      	MsgRxd.DA = ED.eIP;
       	MsgRxd.FC = pFC;
       	MsgRxd.SD = pSD;
 	MsgRxd.LN = pLN;
